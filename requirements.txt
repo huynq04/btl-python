@@ -1,0 +1,10 @@
+fastapi~=0.114.1
+sqlalchemy~=2.0.34
+python-dotenv~=1.0.1
+sqlalchemy
+pymysql
+passlib~=1.7.4
+bcrypt
+python-jose
+psycopg2
+pydantic~=2.9.1
