@@ -1,7 +1,43 @@
+## Authentication Endpoints
+- **POST** `/identity/auth/token`
+- **POST** `/identity/auth/introspect`
+- **POST** `/identity/auth/logout`
+- **POST** `/identity/auth/refresh`
+- **POST** `/identity/auth/outbound/authentication`
 
-## Với truy vấn nhiều điều kiện như này thì truy vấn có mất thời gian không?
-## db có duyệt tất cả các record không?
+## File Endpoints
+- **GET** `/identity/api/v1/file/{slug}`
+- **POST** `/identity/api/v1/file/add/{slug}`
+- **GET** `/identity/api/v1/file/document/{id}`
+- **DELETE** `/identity/api/v1/file/document/{id}`
+- **DELETE** `/identity/api/v1/file/document`
 
-member = (db.query(Member).filter(Member.group_id == post.group_id)
-              .filter(Member.user_id == current_user.user_id, Member.status == 2)
-              .first())
+## Folder Endpoints
+- **GET** `/identity/api/v1/folder`
+- **POST** `/identity/api/v1/folder/add`
+- **DELETE** `/identity/api/v1/folder/delete`
+
+## OTP Endpoints
+- **GET** `/identity/api/v1/otp/send-otp/{username}`
+- **POST** `/identity/api/v1/check-otp/{username}`
+
+## Search Endpoints
+- **GET** `/identity/api/v1/search`
+
+## User Document Endpoints
+- **GET** `/identity/users/my-documents`
+
+## Favorites Endpoints
+- **PUT** `/identity/users/my-favorites/add/{id}`
+- **DELETE** `/identity/users/my-favorites/delete/{id}`
+- **GET** `/identity/users/my-favorites`
+
+## User Endpoints
+- **POST** `/identity/users`
+- **GET** `/identity/users/myInfo`
+- **PUT** `/identity/users/{userId}`
+- **PUT** `/identity/users/update-picture/{userId}`
+- **POST** `/identity/users/activate`
+- **GET** `/identity/users/get-hidden-email/{username}`
+- **PUT** `/identity/users/change-password`
+- **PUT** `/identity/users/reset-password`
