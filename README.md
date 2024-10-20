@@ -5,6 +5,7 @@
 - **POST** `/identity/auth/refresh`
 - **POST** `/identity/auth/outbound/authentication`
 
+# Khánh
 ## File Endpoints
 - **GET** `/identity/api/v1/file/{slug}`
 - **POST** `/identity/api/v1/file/add/{slug}`
@@ -12,6 +13,7 @@
 - **DELETE** `/identity/api/v1/file/document/{id}`
 - **DELETE** `/identity/api/v1/file/document`
 
+# Minh
 ## Folder Endpoints
 - **GET** `/identity/api/v1/folder`
 - **POST** `/identity/api/v1/folder/add`
@@ -27,6 +29,7 @@
 ## User Document Endpoints
 - **GET** `/identity/users/my-documents`
 
+# Tân
 ## Favorites Endpoints
 - **PUT** `/identity/users/my-favorites/add/{id}`
 - **DELETE** `/identity/users/my-favorites/delete/{id}`

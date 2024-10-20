@@ -4,7 +4,6 @@ from app.schemas.user_schema import UserCreate, UserResponse, UserUpdate, Update
 from sqlalchemy.orm import Session
 from app.utils.hashing import Hash
 from ..schemas.token_schema import TokenData
-from ..service import user_service
 from ..utils.oauth2 import get_current_user
 from app.models.user_model import User
 
