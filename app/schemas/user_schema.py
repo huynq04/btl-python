@@ -7,7 +7,7 @@ class UserResponse(BaseModel):
     first_name: str
     last_name: str
     email: str
-    picture: str | None
+    # picture: str | None
 
 
 class UserCreate(BaseModel):

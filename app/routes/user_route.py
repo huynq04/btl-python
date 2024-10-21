@@ -1,3 +1,5 @@
+from typing import List
+
 from fastapi import APIRouter, Depends, status, HTTPException
 from app.core.database import get_db
 from app.schemas.user_schema import UserCreate, UserResponse, UserUpdate, UpdatePassword
@@ -6,6 +8,7 @@ from app.utils.hashing import Hash
 from ..schemas.token_schema import TokenData
 from ..utils.oauth2 import get_current_user
 from app.models.user_model import User
+from app.schemas.api_response import APIResponse
 
 router = APIRouter(
     prefix="/user",
@@ -13,7 +16,7 @@ router = APIRouter(
 )
 
 
-@router.post("/register", status_code=status.HTTP_201_CREATED, response_model=UserResponse)
+@router.post("/register", status_code=status.HTTP_201_CREATED, response_model=APIResponse)
 def create_user(user: UserCreate, db: Session = Depends(get_db)):
     username = db.query(User).filter(User.username == user.username).first()
     email = db.query(User).filter(User.email == user.email).first()
@@ -36,8 +39,26 @@ def create_user(user: UserCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(new_user)
 
-    return new_user
+    return APIResponse(
+        code=201,
+        result=UserResponse(
+            id=new_user.id,
+            first_name=new_user.first_name,
+            last_name=new_user.last_name,
+            username=new_user.username,
+            email=new_user.email,
+        )
+    )
 
+
+@router.get('/all', response_model=List[UserResponse])
+def get_all_user(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
+    # Implementing skip and limit for pagination
+    all_users = db.query(User).offset(skip).limit(limit).all()
+
+    print(all_users)
+
+    return all_users
 
 @router.get("/{id}", response_model=UserResponse)
 def get_user_by_id(id: int,
