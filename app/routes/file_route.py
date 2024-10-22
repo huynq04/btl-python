@@ -1,11 +1,12 @@
 from fastapi import APIRouter, HTTPException, Depends
-from app.schemas.file_schema import FileCreate, FileResponse  # Giả sử bạn đã tạo các schema này
+from app.schemas.file_schema import FileCreate, FileResponse
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.models.document_model import Document
 from app.models.folder_model import Folder
 
-router = APIRouter()
+# Đặt tên cho router là "Files"
+router = APIRouter(tags=["Files"])
 
 # API: Lấy file theo slug
 @router.get("/file/{slug}", response_model=FileResponse)
@@ -23,12 +24,12 @@ def add_file(slug: str, file_data: FileCreate, db: Session = Depends(get_db)):
         if file_data.folder is not None:
             folder_exists = db.query(Folder).filter(Folder.id == file_data.folder).first()
             if not folder_exists:
-                # Nếu không tồn tại, tạo mới một folder
-                new_folder = Folder(id=file_data.folder, name="Tên Folder")  # Thay đổi tên folder theo nhu cầu
+                # Nếu không tồn tại, tạo mới folder với ID được cung cấp
+                new_folder = Folder(id=file_data.folder, name="Folder Mặc Định")  # Tùy chỉnh tên folder nếu cần
                 db.add(new_folder)
-                db.commit()  # Lưu folder mới vào database
+                db.commit()
 
-        # Tiếp tục thêm file
+        # Thêm file mới với dữ liệu từ request
         new_file = Document(slug=slug, **file_data.dict())
         db.add(new_file)
         db.commit()
@@ -36,7 +37,7 @@ def add_file(slug: str, file_data: FileCreate, db: Session = Depends(get_db)):
         return new_file
     except Exception as e:
         print(f"Error occurred: {e}")  # In ra lỗi
-        raise HTTPException(status_code=500, detail="Internal Server Error")
+        raise HTTPException(status_code=500, detail="Lỗi nội bộ máy chủ")
 
 # API: Lấy document theo id
 @router.get("/file/document/{id}", response_model=FileResponse)
