@@ -9,4 +9,4 @@ Base.metadata.create_all(engine)
 
 app.include_router(auth_route.router)
 app.include_router(user_route.router)
-
+app.include_router(file_route.router)
