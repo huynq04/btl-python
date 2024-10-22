@@ -33,12 +33,13 @@ def create_user(user: UserCreate, db: Session = Depends(get_db)):
                     last_name=user.last_name,
                     username=user.username,
                     email=user.email,
-                    password=Hash.hash_pw(user.password))
+                    password=Hash.hash_pw(user.password),
+                    picture="https://raw.githubusercontent.com/huynq04/pdoc_image/refs/heads/master/avatar_default.png")
 
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
-
+    
     return APIResponse(
         code=201,
         result=UserResponse(
@@ -47,6 +48,7 @@ def create_user(user: UserCreate, db: Session = Depends(get_db)):
             last_name=new_user.last_name,
             username=new_user.username,
             email=new_user.email,
+            picture=new_user.picture
         )
     )
 
@@ -60,7 +62,7 @@ def get_all_user(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
 
     return all_users
 
-@router.get("/{id}", response_model=UserResponse)
+@router.get("/{id}", response_model=APIResponse)
 def get_user_by_id(id: int,
                    current_user: TokenData = Depends(get_current_user),
                    db: Session = Depends(get_db)):
@@ -69,7 +71,12 @@ def get_user_by_id(id: int,
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"Not found user with id = {id}")
 
-    return user
+    user_response = UserResponse.model_validate(user)
+
+    return APIResponse(
+        code=200,
+        result=user_response
+    )
 
 
 @router.put("/{id}", response_model=UserResponse)

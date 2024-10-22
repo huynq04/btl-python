@@ -1,5 +1,3 @@
-import uuid
-
 from app.core.database import Base
 from sqlalchemy import Column, Integer, String, ForeignKey, text
 from sqlalchemy.sql.sqltypes import TIMESTAMP
@@ -12,7 +10,11 @@ class Folder(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     create_at = Column(TIMESTAMP, server_default=text('CURRENT_TIMESTAMP'))
     name = Column(String(255))
-    view = Column(Integer)
-    author = Column(String(255), ForeignKey('user.id'))
+    view = Column(Integer, default=0)
+    author_id = Column(Integer, ForeignKey('user.id'))
     slug = Column(String(255))
-    star = Column(Integer)
+    star = Column(Integer, default=0)
+
+    # relationships
+    author = relationship('User')
+

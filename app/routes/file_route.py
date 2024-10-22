@@ -5,9 +5,12 @@ from app.core.database import get_db
 from app.models.document_model import Document
 from app.models.folder_model import Folder
 
-router = APIRouter()
+router = APIRouter(
+    # prefix="/file",
+    tags=['File']
+)
 
-# API: Lấy file theo slug
+# API: Lấy file theo slug.py
 @router.get("/file/{slug}", response_model=FileResponse)
 def get_file_by_slug(slug: str, db: Session = Depends(get_db)):
     file = db.query(Document).filter(Document.slug == slug).first()
@@ -15,7 +18,7 @@ def get_file_by_slug(slug: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="File không tồn tại")
     return file
 
-# API: Thêm file theo slug
+# API: Thêm file theo slug.py
 @router.post("/file/add/{slug}", response_model=FileResponse)
 def add_file(slug: str, file_data: FileCreate, db: Session = Depends(get_db)):
     try:

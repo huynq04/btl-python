@@ -1,13 +1,26 @@
+from typing import Optional
+
 from pydantic import BaseModel, EmailStr, Field
+from datetime import datetime
 
 
 class UserResponse(BaseModel):
-    id: int
-    username: str
+    activate_code: Optional[str] = None
+    activated: Optional[bool] = None
+    dob: Optional[datetime] = None
+    email: EmailStr
     first_name: str
+    id: int
     last_name: str
-    email: str
-    # picture: str | None
+    location: Optional[str] = None
+    name_picture_firebase: Optional[str] = None  # Cho phép giá trị None
+    phone: Optional[str] = None
+    picture: Optional[str] = None
+    username: str
+
+    class Config:
+        from_orm = True
+        from_attributes = True
 
 
 class UserCreate(BaseModel):
@@ -27,7 +40,3 @@ class UpdatePassword(BaseModel):
     old_password: str
     new_password: str = Field(..., min_length=8, description="Password must be at least 8 characters")
     confirm_password: str = Field(..., min_length=8, description="Password must be at least 8 characters")
-
-
-
-
