@@ -18,11 +18,25 @@ def get_file_by_slug(slug: str, db: Session = Depends(get_db)):
 # API: Thêm file theo slug
 @router.post("/file/add/{slug}", response_model=FileResponse)
 def add_file(slug: str, file_data: FileCreate, db: Session = Depends(get_db)):
-    new_file = Document(slug=slug, **file_data.dict())
-    db.add(new_file)
-    db.commit()
-    db.refresh(new_file)
-    return new_file
+    try:
+        # Kiểm tra xem folder có tồn tại không
+        if file_data.folder is not None:
+            folder_exists = db.query(Folder).filter(Folder.id == file_data.folder).first()
+            if not folder_exists:
+                # Nếu không tồn tại, tạo mới một folder
+                new_folder = Folder(id=file_data.folder, name="Tên Folder")  # Thay đổi tên folder theo nhu cầu
+                db.add(new_folder)
+                db.commit()  # Lưu folder mới vào database
+
+        # Tiếp tục thêm file
+        new_file = Document(slug=slug, **file_data.dict())
+        db.add(new_file)
+        db.commit()
+        db.refresh(new_file)
+        return new_file
+    except Exception as e:
+        print(f"Error occurred: {e}")  # In ra lỗi
+        raise HTTPException(status_code=500, detail="Internal Server Error")
 
 # API: Lấy document theo id
 @router.get("/file/document/{id}", response_model=FileResponse)

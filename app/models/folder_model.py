@@ -13,6 +13,6 @@ class Folder(Base):
     create_at = Column(TIMESTAMP, server_default=text('CURRENT_TIMESTAMP'))
     name = Column(String(255))
     view = Column(Integer)
-    author = Column(Integer, ForeignKey('user.id'))
+    author = Column(String(255), ForeignKey('user.id'))
     slug = Column(String(255))
     star = Column(Integer)
