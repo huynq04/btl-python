@@ -11,8 +11,8 @@ class Folder(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     create_at = Column(TIMESTAMP, server_default=text('CURRENT_TIMESTAMP'))
-    name = Column(String)
+    name = Column(String(255))
     view = Column(Integer)
-    author = Column(String, ForeignKey('user.id'))
-    slug = Column(String)
+    author = Column(Integer, ForeignKey('user.id'))
+    slug = Column(String(255))
     star = Column(Integer)

@@ -1,7 +1,7 @@
 from app.core.database import Base
 from fastapi import FastAPI
 from app.routes import user_route, auth_route, file_route
-
+import app.models
 app = FastAPI()
 
 app.include_router(user_route.router)

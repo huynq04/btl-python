@@ -1,8 +1,9 @@
 from fastapi import APIRouter, HTTPException, Depends
-from models.document_model import Document
-from schemas.file_schema import FileCreate, FileResponse  # Giả sử bạn đã tạo các schema này
+from app.schemas.file_schema import FileCreate, FileResponse  # Giả sử bạn đã tạo các schema này
 from sqlalchemy.orm import Session
-from core.database import get_db
+from app.core.database import get_db
+from app.models.document_model import Document
+from app.models.folder_model import Folder
 
 router = APIRouter()
 
