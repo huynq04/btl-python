@@ -55,12 +55,31 @@ def add_file(slug: str, file_data: FileCreate, db: Session = Depends(get_db)):
     )
 
 # API: Lấy document theo id
-@router.get("/document/{id}", response_model=FileResponse)
+@router.get("/document/{id}", response_model=APIResponse)
 def get_document_by_id(id: int, db: Session = Depends(get_db)):
     document = db.query(Document).filter(Document.id == id).first()
+
     if not document:
-        raise HTTPException(status_code=404, detail="Document không tồn tại")
-    return document
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document không tồn tại")
+
+    return APIResponse(
+        code=200,
+        result=FileResponse(
+            id=document.id,
+            name=document.name,
+            firebase_id=document.firebase_id,
+            create_at=document.create_at,
+            folder=FolderResponse(
+                create_at=document.folder.create_at,
+                id=document.folder.id,
+                name=document.folder.name,
+                slug=document.folder.slug,
+                star=document.folder.star,
+                view=document.folder.view,
+                author=document.folder.author
+            )
+        )
+    )
 
 # API: Xóa document theo id
 @router.delete("/document/{id}")
