@@ -14,18 +14,20 @@ router = APIRouter(
     tags=['File']
 )
 
-# API: Lấy file theo slug.py
+# API: Lấy file theo slug
 @router.get("/{slug}", response_model=APIResponse)
 def get_file_by_slug(slug: str, current_user: TokenData = Depends(get_current_user), db: Session = Depends(get_db)):
     folder = db.query(Folder).filter(Folder.slug == slug).first()
 
     if not folder:
-        raise HTTPException(status_code=404, detail="Folder không tồn tại")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail={"code": 1002, "message": "Folder không tồn tại"})
 
     documents = db.query(Document).filter(Document.folder_id == folder.id).all()
 
     if not documents:
-        raise HTTPException(status_code=404, detail="Không tìm thấy tài liệu trong folder")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail={"code": 1003, "message": "Không có tài liệu", "error_message": "Không tìm thấy tài liệu trong folder"})
 
     items = []
     for document in documents:
@@ -66,8 +68,7 @@ def get_file_by_slug(slug: str, current_user: TokenData = Depends(get_current_us
         }
     )
 
-
-
+# API: Thêm file vào folder
 @router.post("/add/{slug}", response_model=APIResponse)
 def add_file(slug: str, file_data: FileCreate,
              current_user: TokenData = Depends(get_current_user),
@@ -75,10 +76,10 @@ def add_file(slug: str, file_data: FileCreate,
     folder = db.query(Folder).filter(Folder.slug == slug).first()
 
     if not folder:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Folder không tồn tại")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail={"code": 1002, "message": "Folder không tồn tại"})
 
     new_file = Document(name=file_data.name, firebase_id=file_data.firebase_id, folder_id=folder.id)
-
 
     db.add(new_file)
     db.commit()
@@ -95,26 +96,27 @@ def add_file(slug: str, file_data: FileCreate,
     )
 
     return APIResponse(
-        code=200,
+        code=1000,
         result=FileResponse(
             id=new_file.id,
             name=new_file.name,
             firebase_id=new_file.firebase_id,
             create_at=new_file.create_at,
-            folder=folder_response 
+            folder=folder_response
         )
     )
 
 # API: Lấy document theo id
 @router.get("/document/{id}", response_model=APIResponse)
-def get_document_by_id(id: int,current_user: TokenData = Depends(get_current_user), db: Session = Depends(get_db)):
+def get_document_by_id(id: int, current_user: TokenData = Depends(get_current_user), db: Session = Depends(get_db)):
     document = db.query(Document).filter(Document.id == id).first()
 
     if not document:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document không tồn tại")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail={"code": 1002, "message": "Document không tồn tại"})
 
     return APIResponse(
-        code=200,
+        code=1000,
         result=FileResponse(
             id=document.id,
             name=document.name,
@@ -134,17 +136,18 @@ def get_document_by_id(id: int,current_user: TokenData = Depends(get_current_use
 
 # API: Xóa document theo id
 @router.delete("/document/{id}")
-def delete_document_by_id(id: int,current_user: TokenData = Depends(get_current_user), db: Session = Depends(get_db)):
+def delete_document_by_id(id: int, current_user: TokenData = Depends(get_current_user), db: Session = Depends(get_db)):
     document = db.query(Document).filter(Document.id == id).first()
     if not document:
-        raise HTTPException(status_code=404, detail="Document không tồn tại")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail={"code": 1002, "message": "Document không tồn tại"})
     db.delete(document)
     db.commit()
     return {"message": "Document đã được xóa"}
 
 # API: Xóa tất cả các document
 @router.delete("/document")
-def delete_all_documents(current_user: TokenData = Depends(get_current_user),db: Session = Depends(get_db)):
+def delete_all_documents(current_user: TokenData = Depends(get_current_user), db: Session = Depends(get_db)):
     db.query(Document).delete()
     db.commit()
     return {"message": "Tất cả document đã được xóa"}
