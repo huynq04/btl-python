@@ -5,7 +5,6 @@ from datetime import datetime
 
 
 class UserResponse(BaseModel):
-    activate_code: Optional[str] = None
     activated: Optional[bool] = None
     dob: Optional[datetime] = None
     email: EmailStr
@@ -34,6 +33,9 @@ class UserCreate(BaseModel):
 class UserUpdate(BaseModel):
     first_name: str
     last_name: str
+    dob:Optional[datetime] = None
+    location: Optional[str] = None
+    phone: Optional[str] = None
 
 
 class UpdatePassword(BaseModel):

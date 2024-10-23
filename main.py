@@ -14,10 +14,10 @@ async def custom_http_exception_handler(request: Request, exc: HTTPException):
     return JSONResponse(
         status_code=exc.status_code,
         content=APIResponse(
-            code=exc.status_code,
+            code=exc.detail["code"],
             result=None,
             message="An error occurred",
-            error_message=exc.detail
+            error_message=exc.detail["message"]
         ).model_dump()
     )
 

@@ -11,23 +11,31 @@ from app.models.user_model import User
 from app.schemas.api_response import APIResponse
 
 router = APIRouter(
-    prefix="/user",
+    prefix="/identity/users",
     tags=['Users']
 )
 
 
-@router.post("/register", status_code=status.HTTP_201_CREATED, response_model=APIResponse)
+@router.post("", status_code=status.HTTP_201_CREATED, response_model=APIResponse)
 def create_user(user: UserCreate, db: Session = Depends(get_db)):
     username = db.query(User).filter(User.username == user.username).first()
     email = db.query(User).filter(User.email == user.email).first()
 
     if username:
         raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE,
-                            detail=f"Username is already exist.")
+                            detail=APIResponse(
+                                code=1002,
+                                message="User existed",
+                                error_message="Username already exists"
+                            ))
 
     if email:
         raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE,
-                            detail="Email is already exist.")
+                            detail=APIResponse(
+                                code=1002,
+                                message="User existed",
+                                error_message="Email already exists"
+                            ))
 
     new_user = User(first_name=user.first_name,
                     last_name=user.last_name,
@@ -41,7 +49,7 @@ def create_user(user: UserCreate, db: Session = Depends(get_db)):
     db.refresh(new_user)
     
     return APIResponse(
-        code=201,
+        code=1000,
         result=UserResponse(
             id=new_user.id,
             first_name=new_user.first_name,
@@ -49,9 +57,20 @@ def create_user(user: UserCreate, db: Session = Depends(get_db)):
             username=new_user.username,
             email=new_user.email,
             picture=new_user.picture
-        )
+        ),
     )
 
+@router.get('/myInfo',status_code=status.HTTP_200_OK, response_model=APIResponse)
+def get_my_info( current_user: TokenData = Depends(get_current_user),db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.id == current_user.user_id).first()
+    return APIResponse(code=1000,result=UserResponse(id=user.id,first_name=user.first_name,
+            last_name=user.last_name,
+            username=user.username,
+            email=user.email,
+            picture=user.picture,
+            dob=user.dob,
+            location=user.location,phone=user.phone,name_picture_firebase=user.name_picture_firebase,
+            activated=user.activated))
 
 @router.get('/all', response_model=List[UserResponse])
 def get_all_user(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
@@ -79,26 +98,36 @@ def get_user_by_id(id: int,
     )
 
 
-@router.put("/{id}", response_model=UserResponse)
+@router.put("/{id}", response_model=APIResponse)
 def update_user(id: int, user: UserUpdate,
                 current_user: TokenData = Depends(get_current_user),
                 db: Session = Depends(get_db)):
     user_db = db.query(User).filter(User.id == id).first()
     if not user_db:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail=f"Not found user with id = {id}")
-
+                            detail={"code":1002,"message":"User not found"})
     if current_user.user_id != id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
-                            detail="You are not allowed to update this user")
+                            detail={"code":1001,"message":"You can't delete the profile not your own"})
 
     user_db.first_name = user.first_name
     user_db.last_name = user.last_name
+    user_db.phone=user.phone
+    user_db.location=user.location
+    user_db.dob=user.dob
 
     db.commit()
     db.refresh(user_db)
 
-    return user_db
+    return APIResponse(code=1000,
+                       result=UserResponse(id=user_db.id,first_name=user_db.first_name,
+            last_name=user_db.last_name,
+            username=user_db.username,
+            email=user_db.email,
+            picture=user_db.picture,
+            dob=user_db.dob,
+            location=user_db.location,phone=user_db.phone,name_picture_firebase=user_db.name_picture_firebase,
+            activated=user_db.activated))
 
 
 @router.put("/update-password/{id}", response_model=UserResponse)
