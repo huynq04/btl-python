@@ -1,48 +1,61 @@
-from fastapi import APIRouter, HTTPException, Depends
-from app.schemas.file_schema import FileCreate, FileResponse  # Giả sử bạn đã tạo các schema này
+from fastapi import APIRouter, HTTPException, Depends, status
+from app.schemas.api_response import APIResponse
+from app.schemas.file_schema import FileCreate, FileResponse
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.models.document_model import Document
 from app.models.folder_model import Folder
+from app.schemas.folder_schema import FolderResponse
 
 router = APIRouter(
-    # prefix="/file",
+    prefix="/file",
     tags=['File']
 )
 
 # API: Lấy file theo slug.py
-@router.get("/file/{slug}", response_model=FileResponse)
+@router.get("/{slug}", response_model=FileResponse)
 def get_file_by_slug(slug: str, db: Session = Depends(get_db)):
     file = db.query(Document).filter(Document.slug == slug).first()
     if not file:
         raise HTTPException(status_code=404, detail="File không tồn tại")
     return file
 
-# API: Thêm file theo slug.py
-@router.post("/file/add/{slug}", response_model=FileResponse)
+@router.post("/add/{slug}", response_model=APIResponse)
 def add_file(slug: str, file_data: FileCreate, db: Session = Depends(get_db)):
-    try:
-        # Kiểm tra xem folder có tồn tại không
-        if file_data.folder is not None:
-            folder_exists = db.query(Folder).filter(Folder.id == file_data.folder).first()
-            if not folder_exists:
-                # Nếu không tồn tại, tạo mới một folder
-                new_folder = Folder(id=file_data.folder, name="Tên Folder")  # Thay đổi tên folder theo nhu cầu
-                db.add(new_folder)
-                db.commit()  # Lưu folder mới vào database
+    folder = db.query(Folder).filter(Folder.slug == slug).first()
 
-        # Tiếp tục thêm file
-        new_file = Document(slug=slug, **file_data.dict())
-        db.add(new_file)
-        db.commit()
-        db.refresh(new_file)
-        return new_file
-    except Exception as e:
-        print(f"Error occurred: {e}")  # In ra lỗi
-        raise HTTPException(status_code=500, detail="Internal Server Error")
+    if not folder:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Folder không tồn tại")
+    
+    new_file = Document(name=file_data.name, firebase_id=file_data.firebase_id, folder_id = folder.id)
+
+    db.add(new_file)
+    db.commit()
+    db.refresh(new_file)
+
+    folder_response = FolderResponse(
+        create_at=folder.create_at,
+        id=folder.id,
+        name=folder.name,
+        slug=folder.slug,
+        star=folder.star,
+        view=folder.view,
+        author=folder.author
+    )
+
+    return APIResponse(
+        code=200,
+        result=FileResponse(
+            id=new_file.id,
+            name=new_file.name,
+            firebase_id=new_file.firebase_id,
+            create_at=new_file.create_at,
+            folder=folder_response 
+        )
+    )
 
 # API: Lấy document theo id
-@router.get("/file/document/{id}", response_model=FileResponse)
+@router.get("/document/{id}", response_model=FileResponse)
 def get_document_by_id(id: int, db: Session = Depends(get_db)):
     document = db.query(Document).filter(Document.id == id).first()
     if not document:
@@ -50,7 +63,7 @@ def get_document_by_id(id: int, db: Session = Depends(get_db)):
     return document
 
 # API: Xóa document theo id
-@router.delete("/file/document/{id}")
+@router.delete("/document/{id}")
 def delete_document_by_id(id: int, db: Session = Depends(get_db)):
     document = db.query(Document).filter(Document.id == id).first()
     if not document:
@@ -60,7 +73,7 @@ def delete_document_by_id(id: int, db: Session = Depends(get_db)):
     return {"message": "Document đã được xóa"}
 
 # API: Xóa tất cả các document
-@router.delete("/file/document")
+@router.delete("/document")
 def delete_all_documents(db: Session = Depends(get_db)):
     db.query(Document).delete()
     db.commit()
