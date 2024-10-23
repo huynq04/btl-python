@@ -12,7 +12,6 @@ class Document(Base):
     firebase_id = Column(String(255))
     name = Column(String(255))
     folder_id = Column(Integer, ForeignKey('folder.id'))
-    slug = Column(String(255), unique=True)
 
     # relationships
     folder = relationship('Folder')
