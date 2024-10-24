@@ -6,22 +6,14 @@ from app.models.user_model import User
 from app.models.favorite_model import Favorite
 from app.schemas.api_response import APIResponse
 from ..schemas.token_schema import TokenData
+from ..schemas.favorite_schema import FavoriteResponse  # Import schema đã tách
 from ..utils.oauth2 import get_current_user
-from pydantic import BaseModel
 
-# Schema cho response
-class FavoriteResponse(BaseModel):
-    folder_id: int
-    user_id: int
-
-    class Config:
-        orm_mode = True
-
-# Router cho Favorites
-router = APIRouter(
+favorites_route = APIRouter(
     prefix="/identity/users/my-favorites",
     tags=["Favorites"]
 )
+
 
 # Endpoint thêm folder vào favorites
 @router.put("/add/{id}", response_model=APIResponse)
@@ -94,28 +86,3 @@ def get_favorites(current_user: TokenData = Depends(get_current_user),
         code=200,
         result=favorite_list
     )
-
-# Mô hình Favorite (nếu chưa có, thêm vào file models)
-from sqlalchemy import Column, Integer, ForeignKey
-from sqlalchemy.orm import relationship
-from app.core.database import Base
-
-class Favorite(Base):
-    __tablename__ = 'favorites'
-    id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey('users.id'))
-    folder_id = Column(Integer, ForeignKey('folders.id'))
-
-    user = relationship("User", back_populates="favorites")
-    folder = relationship("Folder", back_populates="favorites")
-
-# Cần chỉnh sửa lại model User và Folder để hỗ trợ quan hệ với Favorite
-# Trong models/user_model.py thêm:
-class User(Base):
-    # ...
-    favorites = relationship("Favorite", back_populates="user")
-
-# Trong models/folder_model.py thêm:
-class Folder(Base):
-    # ...
-    favorites = relationship("Favorite", back_populates="folder")
