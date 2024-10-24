@@ -1,48 +1,26 @@
-import smtplib
+import re
+
+from datetime import datetime
+
 
 from typing import List
 
 from fastapi import APIRouter, Depends, status, HTTPException
 from app.core.database import get_db
 from app.schemas.user_schema import UserCreate, UserResponse, UserUpdate, UpdatePassword
-from app.schemas.password_schema import ChangePassWordRequest;
+from app.schemas.password_schema import ChangePassWordRequest,ResetPasswordRequest;
 from sqlalchemy.orm import Session
 from app.utils.hashing import Hash
 from ..schemas.token_schema import TokenData
 from ..utils.oauth2 import get_current_user
 from app.models.user_model import User
+from app.models.otp_model import Otp
 from app.schemas.api_response import APIResponse
-
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
 
 router = APIRouter(
     prefix="/identity/users",
     tags=['Users']
 )
-
-def send_html_email(subject, html_body, to_email):
-    from_email = "haihuy9a@gmail.com"
-    password = "vydookwgmkvjjwvz"
-
-    msg = MIMEMultipart()
-    msg['From'] = from_email
-    msg['To'] = to_email
-    msg['Subject'] = subject
-
-    msg.attach(MIMEText(html_body, 'html'))
-
-    try:
-        # Kết nối tới server Gmail
-        server = smtplib.SMTP('smtp.gmail.com', 587)
-        server.starttls()
-        server.login(from_email, password)
-        text = msg.as_string()
-        server.sendmail(from_email, to_email, text)
-        server.quit()
-        print("Email đã được gửi thành công!")
-    except Exception as e:
-        print(f"Đã xảy ra lỗi: {e}")
 
 @router.post("", status_code=status.HTTP_201_CREATED, response_model=APIResponse)
 def create_user(user: UserCreate, db: Session = Depends(get_db)):
@@ -67,23 +45,9 @@ def create_user(user: UserCreate, db: Session = Depends(get_db)):
                     last_name=user.last_name,
                     username=user.username,
                     email=user.email,
+                    activated=True,
                     password=Hash.hash_pw(user.password),
                     picture="https://raw.githubusercontent.com/huynq04/pdoc_image/refs/heads/master/avatar_default.png")
-
-    html_content = """
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <title>Email HTML</title>
-            </head>
-            <body>
-                <h1>Chào bạn!</h1>
-                <p>Đây là nội dung <b>HTML</b> của email.</p>
-                <p>Cảm ơn bạn đã sử dụng dịch vụ của chúng tôi!</p>
-            </body>
-            </html>
-        """
-    send_html_email("Tiêu đề Email", html_content, email)
 
     db.add(new_user)
     db.commit()
@@ -152,6 +116,43 @@ def change_password(request: ChangePassWordRequest,current_user: TokenData = Dep
         return APIResponse(code=1000,result={"result":"Password changed succesfully"})
     else: raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,detail={"code":1004,"message":"Wrong password"})
 
+@router.put("/reset-password",response_model=APIResponse)
+def reset_password(request:ResetPasswordRequest, db: Session = Depends(get_db)):
+    user_db = db.query(User).filter(User.username == request.username).first()
+    if(user_db is None):
+         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail={
+                                "code":"1005",
+                                "message":"Cannot find username "
+                            })
+    otp_db=db.query(Otp).filter(Otp.user_id==user_db.id).first()
+    if(otp_db):
+        if(request.otp_code==otp_db.otp_code):
+            if(otp_db.expiry_time<datetime.now()):
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                               detail={
+                                "code":"1007",
+                                "message":"Your otp code has expired"
+                            })
+            new_password=Hash.hash_pw(request.new_password)
+            user_db.password=new_password
+            db.commit()
+            db.refresh(user_db)
+            db.query(Otp).filter(Otp.user_id == user_db.id).delete()
+            db.commit()
+            return APIResponse(code=1000,result={"result":"Password changed successfully"})
+
+        else: raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                               detail={
+                                "code":"1009",
+                                "message":"Your otp code you entered is in valid"
+                            })
+    else: raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                               detail={
+                                "code":"1001",
+                                "message":"Cannot find otp"
+                            })
+
 @router.put("/{id}", response_model=APIResponse)
 def update_user(id: int, user: UserUpdate,
                 current_user: TokenData = Depends(get_current_user),
@@ -182,6 +183,24 @@ def update_user(id: int, user: UserUpdate,
             dob=user_db.dob,
             location=user_db.location,phone=user_db.phone,name_picture_firebase=user_db.name_picture_firebase,
             activated=user_db.activated))
+
+@router.get("/get-hidden-email/{username}")
+def get_hidden_email(username:str,db: Session = Depends(get_db)):
+    user_db = db.query(User).filter(User.username == username).first()
+    if user_db.email is None:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                            detail={
+                                "code":"1005",
+                                "message":"Cannot find user"
+                            })
+    try:
+        user,domain= str(user_db.email).split('@')
+        masked_user = user[-2:] if len(user) > 2 else user
+        return APIResponse(code=1000,result={"email":f"***{masked_user}@{domain}"})
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,detail={"code":"9999","message":"Invalid email"})
+
+
 
 # @router.put("/update-password/{id}", response_model=UserResponse)
 # def update_password(id: int, user: UpdatePassword,
