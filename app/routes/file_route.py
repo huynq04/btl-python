@@ -43,7 +43,7 @@ def get_file_by_slug(slug: str, current_user: TokenData = Depends(get_current_us
                 "author": {
                     "id": str(folder.author.id),
                     "username": folder.author.username,
-                    "firstName": folder.author.first_name,
+                    "first_name": folder.author.first_name,
                     "last_name": folder.author.last_name,
                     "dob": folder.author.dob,
                     "picture": folder.author.picture,
