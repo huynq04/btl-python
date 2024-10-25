@@ -2,9 +2,9 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
 from app.models import *
 from app.core.database import engine
-from app.routes import user_route, auth_route, file_route, folder_route
+from app.routes import user_route, auth_route, file_route, folder_route, favorites_route
 from app.schemas.api_response import APIResponse
-from app.routers import favorites
+
 app = FastAPI()
 
 Base.metadata.create_all(engine)
@@ -25,4 +25,4 @@ app.include_router(auth_route.router)
 app.include_router(user_route.router)
 app.include_router(file_route.router)
 app.include_router(folder_route.router)
-app.include_router(favorites.router)
+app.include_router(favorites_route.router)
