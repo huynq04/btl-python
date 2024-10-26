@@ -8,6 +8,7 @@ from app.schemas.api_response import APIResponse
 from ..schemas.token_schema import TokenData
 from app.models.folder_model import Folder
 from ..utils.slug import generate_slug
+from .models import Folder, User, Likes
 
 router = APIRouter(
     prefix="/folder",
@@ -20,9 +21,15 @@ def create_folder(folder: FolderCreate,
                 current_user: TokenData = Depends(get_current_user),
                 db: Session = Depends(get_db)):
     name_folder =  db.query(Folder).filter(Folder.name == folder.name).first()
+   
     if name_folder:
         raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE,
-                            detail=f"Folder name is already exist.")
+                        detail=APIResponse(
+                            code=1002,
+                            message="Folder existed",
+                            error_message="Folder name already exists"
+                        ))
+
     
     slug = generate_slug(folder.name)
 
@@ -32,6 +39,11 @@ def create_folder(folder: FolderCreate,
     db.add(new_folder)
     db.commit()
     db.refresh(new_folder)
+
+    liked = db.query(Likes).filter(
+        Likes.user_id == current_user.user_id,
+        Likes.folder_id == new_folder.id
+    ).first() is not None
 
     author = db.query(User).filter(User.id == new_folder.author_id).first()
 
@@ -44,7 +56,7 @@ def create_folder(folder: FolderCreate,
             view=new_folder.view,
             slug=new_folder.slug,
             star=new_folder.star,
-            liked = False,
+            liked = liked,
             create_at=new_folder.create_at,
             author = author
         )
@@ -53,14 +65,16 @@ def create_folder(folder: FolderCreate,
 
 @router.get("/", response_model=APIResponse)
 def get_folders(db: Session = Depends(get_db)):
-    # Lấy tất cả folder từ database
     folders = db.query(Folder).all()
 
-    # Kiểm tra nếu không có folder nào
     if not folders:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No folders found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                        detail=APIResponse(
+                            code=1003,
+                            message="No folders found",
+                            error_message="No folders exist in the system"
+                        ))
 
-    # Tạo response với danh sách các folder
     folder_list = [
         FolderResponse(
             id=folder.id,
@@ -69,9 +83,12 @@ def get_folders(db: Session = Depends(get_db)):
             view=folder.view,
             slug=folder.slug,
             star=folder.star,
-            liked=False,  # Giả định là chưa ai like
+            liked=db.query(Likes).filter(
+                Likes.user_id == current_user.user_id,
+                Likes.folder_id == folder.id
+            ).first() is not None,  
             create_at=folder.create_at,
-            author=db.query(User).filter(User.id == folder.author_id).first()  # Lấy thông tin tác giả
+            author=db.query(User).filter(User.id == folder.author_id).first()  
         ) for folder in folders
     ]
 
@@ -86,24 +103,26 @@ def get_folders(db: Session = Depends(get_db)):
 def delete_folder(folder_id: int,
                   current_user: TokenData = Depends(get_current_user),
                   db: Session = Depends(get_db)):
-    # Tìm folder theo ID
     folder = db.query(Folder).filter(Folder.id == folder_id).first()
 
-    # Nếu folder không tồn tại, trả về lỗi
     if not folder:
-        return APIResponse(
-            code=status.HTTP_404_NOT_FOUND,
-            result={"message": "Folder not found"}
-        )
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=APIResponse(
+                code=1004,
+                message="Folder not found",
+                error_message="No folder exists with the provided ID"
+            ))
 
-    # Kiểm tra xem người dùng hiện tại có phải là tác giả của folder không
-    if folder.author_id != current_user.user_id:
-        return APIResponse(
-            code=status.HTTP_403_FORBIDDEN,
-            result={"message": "Not allowed to delete this folder"}
-        )
+     if folder.author_id != current_user.user_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=APIResponse(
+                code=1005,
+                message="Not allowed to delete this folder",
+                error_message="You do not have permission to delete this folder"
+            ))
 
-    # Xóa folder
     db.delete(folder)
     db.commit()
 
