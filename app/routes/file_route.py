@@ -22,7 +22,7 @@ def get_file_by_slug(slug: str, current_user: TokenData = Depends(get_current_us
 
     if not folder:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail={"code": 1002, "message": "Folder does not exist"})
+                            detail={"code": 1009, "message": "Folder does not exist"})
 
     documents = db.query(Document).filter(Document.folder_id == folder.id).order_by(Document.id.desc()).all()
 
@@ -55,14 +55,17 @@ def get_file_by_slug(slug: str, current_user: TokenData = Depends(get_current_us
             }
         })
 
+    can_update = folder.author_id == current_user.user_id
+
     return APIResponse(
         code=1000,
         result={
             "items": items,
             "total": len(items),
-            "can_update": True
+            "can_update": can_update
         }
     )
+
 
 # API: Add file to folder
 @router.post("/add/{slug}", response_model=APIResponse)
@@ -73,16 +76,16 @@ def add_file(slug: str, file_data: FileCreate,
 
     if not folder:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail={"code": 1002, "message": "Folder does not exist"})
+                            detail={"code": 1009, "message": "Folder does not exist"})
 
     if folder.author_id != current_user.user_id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
-                            detail={"code": 1004, "message": "You are not authorized to add files to this folder"})
+                            detail={"code": 1007, "message": "You are not authorized to add files to this folder"})
 
     existing_file = db.query(Document).filter(Document.firebase_id == file_data.firebase_id).first()
     if existing_file:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                            detail={"code": 1003, "message": "firebase_id already exists in the documents"})
+                            detail={"code": 1010, "message": "firebase_id already exists in the documents"})
 
     new_file = Document(
         name=file_data.name,
@@ -124,7 +127,7 @@ def get_document_by_id(id: int, current_user: TokenData = Depends(get_current_us
 
     if not document:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail={"code": 1002, "message": "Document does not exist"})
+                            detail={"code": 1009, "message": "Document does not exist"})
 
     return APIResponse(
         code=1000,
@@ -152,12 +155,12 @@ def delete_document_by_id(id: int, current_user: TokenData = Depends(get_current
 
     if not document:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail={"code": 1002, "message": "Document does not exist"})
+                            detail={"code": 1009, "message": "Document does not exist"})
 
     folder = db.query(Folder).filter(Folder.id == document.folder_id).first()
     if folder.author_id != current_user.user_id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
-                            detail={"code": 1004, "message": "You are not authorized to delete this document"})
+                            detail={"code": 1007, "message": "You are not authorized to delete this document"})
 
     db.delete(document)
     db.commit()
@@ -177,12 +180,12 @@ def delete_list_documents(delete_list_documents_request: DeleteListDocumentsRequ
             document = db.query(Document).filter(Document.id == doc_id).first()
             if not document:
                 raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                                    detail={"code": 1002, "message": f"Document with id {doc_id} not found"})
+                                    detail={"code": 1009, "message": f"Document with id {doc_id} not found"})
 
             folder = db.query(Folder).filter(Folder.id == document.folder_id).first()
             if folder.author_id != current_user.user_id:
                 raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
-                                    detail={"code": 1004,
+                                    detail={"code": 1007,
                                             "message": "You can't delete documents not in your own folder"})
 
             db.delete(document)
