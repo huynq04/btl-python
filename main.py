@@ -2,7 +2,7 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
 from app.models import *
 from app.core.database import engine
-from app.routes import user_route, auth_route, file_route, folder_route, otp_route
+from app.routes import user_route, auth_route, file_route, folder_route, otp_route, favorites_route
 from app.schemas.api_response import APIResponse
 
 app = FastAPI()
@@ -26,3 +26,4 @@ app.include_router(user_route.router)
 app.include_router(file_route.router)
 app.include_router(folder_route.router)
 app.include_router(otp_route.router)
+app.include_router(favorites_route.router)
