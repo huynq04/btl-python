@@ -19,13 +19,16 @@ router = APIRouter(
 def create_folder(
     folder: FolderCreate,
     current_user: TokenData = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    page:int = 1, 
+    limit:int = 4, 
+    name_folder = ''
 ):
     name_folder = db.query(Folder).filter(Folder.name == folder.name).first()
 
     if name_folder:
-        raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE,
-        detail={"code": 1002,"message": "Folder already exists: A folder with this name already exists"})
+        raise HTTPException(status_code=status.HTTP_400_NOT_ACCEPTABLE,
+                            detail={"code": 1010,"message": "Folder already exists: A folder with this name already exists"})
     
 
     slug = generate_slug(folder.name)
@@ -39,6 +42,13 @@ def create_folder(
     db.commit()
     db.refresh(new_folder)
 
+    # Tìm kiếm thư mục dựa trên tham số name
+    skip = (page - 1) * limit
+    query = db.query(Folder).filter(Folder.name.like(f"%{name}%"))
+    
+    fs = query.offset(skip).limit(limit).all()
+    folders = [{"id": f.id, "name": f.name, "slug": f.slug} for f in fs]
+
     # Kiểm tra xem người dùng có thích thư mục này không
     user_folder_entry = db.query(User_Folder).filter(User_Folder.user_id == current_user.user_id,User_Folder.folder_id == new_folder.id).first()
     is_favorited = user_folder_entry is not None
@@ -46,7 +56,7 @@ def create_folder(
     author = db.query(User).filter(User.id == new_folder.author_id).first()
 
     return APIResponse(
-        code=201,
+        code=1000,
         result=FolderResponse(
             id=new_folder.id,
             name=new_folder.name,
@@ -64,11 +74,18 @@ def create_folder(
 
 @router.get("/", response_model=APIResponse)
 def get_folders(db: Session = Depends(get_db)):
+    get_folder: get_folders
+    current_user: TokenData = Depends(get_current_user),
+
+    page: int = Query(1, ge=1),  
+    limit: int = Query(8, ge=1),  
+    offset = (page - 1) * limit
+
     folders = db.query(Folder).all()
 
     if not folders:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-        detail={"code": 1003,"message": "No folders found: No folders exist in the system"})
+                            detail={"code": 1009,"message": "No folders found: No folders exist in the system"})
     
     folder_list = []
     for folder in folders:
@@ -92,7 +109,7 @@ def get_folders(db: Session = Depends(get_db)):
     ]
 
     return APIResponse(
-        code=200,
+        code=1000,
         result=folder_list
     )
 
@@ -109,18 +126,18 @@ def delete_folder(
 
     if not folder:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-        detail={"code": 1004,"message": "Folder not found: No folder exists with the provided ID"})
+                            detail={"code": 1009,"message": "Folder not found: No folder exists with the provided ID"})
 
     if folder.author_id != current_user.user_id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
-        detail={"code": 1005,"message": "Not allowed to delete this folder: You do not have permission to delete this folder"})
+                            detail={"code": 1007,"message": "Not allowed to delete this folder: You do not have permission to delete this folder"})
     
 
     db.delete(folder)
     db.commit()
 
     return APIResponse(
-        code=200,
+        code=1000,
         result={"message": f"Folder with id {folder_id} has been deleted"}
     )
 
