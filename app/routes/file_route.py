@@ -31,7 +31,7 @@ def get_file_by_slug(slug: str, current_user: TokenData = Depends(get_current_us
         items.append({
             "id": str(document.id),
             "name": document.name,
-            "fire_base_id": document.firebase_id,
+            "firebase_id": document.firebase_id,
             "create_at": document.create_at,
             "folder": {
                 "id": str(folder.id),
@@ -165,7 +165,7 @@ def delete_document_by_id(id: int, current_user: TokenData = Depends(get_current
     db.delete(document)
     db.commit()
 
-    return {"message": "Document has been deleted"}
+    return APIResponse(code=1000,result={"result":"Deleted successfully"})
 
 
 # API: Delete documents
