@@ -39,6 +39,10 @@ def create_folder(
     db.commit()
     db.refresh(new_folder)
 
+    # Kiểm tra xem người dùng có thích thư mục này không
+    user_folder_entry = db.query(User_Folder).filter(User_Folder.user_id == current_user.user_id,User_Folder.folder_id == new_folder.id).first()
+    is_favorited = user_folder_entry is not None
+
     author = db.query(User).filter(User.id == new_folder.author_id).first()
 
     return APIResponse(
@@ -51,7 +55,8 @@ def create_folder(
             slug=new_folder.slug,
             star=new_folder.star,
             create_at=new_folder.create_at,
-            author=author
+            author=author,
+            is_favorited=is_favorited
         )
     )
 
@@ -65,6 +70,12 @@ def get_folders(db: Session = Depends(get_db)):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
         detail={"code": 1003,"message": "No folders found: No folders exist in the system"})
     
+    folder_list = []
+    for folder in folders:
+        # Kiểm tra xem người dùng có thích thư mục này không
+        user_folder_entry = db.query(User_Folder).filter(User_Folder.user_id == current_user.user_id,User_Folder.folder_id == folder.id).first()
+        is_favorited = user_folder_entry is not None
+    
 
     folder_list = [
         FolderResponse(
@@ -75,7 +86,8 @@ def get_folders(db: Session = Depends(get_db)):
             slug=folder.slug,
             star=folder.star,
             create_at=folder.create_at,
-            author=db.query(User).filter(User.id == folder.author_id).first()
+            author=db.query(User).filter(User.id == folder.author_id).first(),
+            is_favorited=is_favorited
         ) for folder in folders
     ]
 
