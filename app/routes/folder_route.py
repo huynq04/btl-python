@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, status, HTTPException
 from app.core.database import get_db
+from app.models.user_folder_model import User_Folder
 from app.models.user_model import User
 from app.schemas.folder_schema import FolderCreate, FolderResponse
 from sqlalchemy.orm import Session
@@ -20,14 +21,12 @@ def create_folder(
     folder: FolderCreate,
     current_user: TokenData = Depends(get_current_user),
     db: Session = Depends(get_db),
-    page:int = 1, 
-    limit:int = 4, 
-    name_folder = ''
+    
 ):
     name_folder = db.query(Folder).filter(Folder.name == folder.name).first()
 
     if name_folder:
-        raise HTTPException(status_code=status.HTTP_400_NOT_ACCEPTABLE,
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail={"code": 1010,"message": "Folder already exists: A folder with this name already exists"})
     
 
@@ -42,12 +41,6 @@ def create_folder(
     db.commit()
     db.refresh(new_folder)
 
-    # Tìm kiếm thư mục dựa trên tham số name
-    skip = (page - 1) * limit
-    query = db.query(Folder).filter(Folder.name.like(f"%{name}%"))
-    
-    fs = query.offset(skip).limit(limit).all()
-    folders = [{"id": f.id, "name": f.name, "slug": f.slug} for f in fs]
 
     # Kiểm tra xem người dùng có thích thư mục này không
     user_folder_entry = db.query(User_Folder).filter(User_Folder.user_id == current_user.user_id,User_Folder.folder_id == new_folder.id).first()
@@ -73,15 +66,12 @@ def create_folder(
 
 
 @router.get("/", response_model=APIResponse)
-def get_folders(db: Session = Depends(get_db)):
-    get_folder: get_folders
+def get_folders(page: int = 1, limit: int = 8, db: Session = Depends(get_db)):
     current_user: TokenData = Depends(get_current_user),
 
-    page: int = Query(1, ge=1),  
-    limit: int = Query(8, ge=1),  
     offset = (page - 1) * limit
 
-    folders = db.query(Folder).all()
+    folders = db.query(User_Folder).filter(User_Folder.user_id == current_user.user_id).offset(offset).limit(limit).all()
 
     if not folders:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
@@ -92,7 +82,8 @@ def get_folders(db: Session = Depends(get_db)):
         # Kiểm tra xem người dùng có thích thư mục này không
         user_folder_entry = db.query(User_Folder).filter(User_Folder.user_id == current_user.user_id,User_Folder.folder_id == folder.id).first()
         is_favorited = user_folder_entry is not None
-    
+        
+        author = db.query(User).filter(User.id == folder.author_id).first()
 
     folder_list = [
         FolderResponse(
