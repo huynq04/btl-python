@@ -24,7 +24,7 @@ def get_file_by_slug(slug: str, current_user: TokenData = Depends(get_current_us
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail={"code": 1009, "message": "Folder does not exist"})
 
-    documents = db.query(Document).filter(Document.folder_id == folder.id).order_by(Document.id.desc()).all()
+    documents = db.query(Document).filter(Document.folder_id == folder.id).order_by(Document.create_at.desc()).all()
 
     items = []
     for document in documents:
