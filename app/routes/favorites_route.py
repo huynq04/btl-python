@@ -74,17 +74,11 @@ def get_favorites(page:int = 1, limit: int = 8, current_user: TokenData = Depend
                   db: Session = Depends(get_db)):
     # Lấy tất cả các folder mà người dùng đã yêu thích
     skip = (page - 1) * limit
+    query=db.query(User_Folder).filter(User_Folder.user_id == current_user.user_id)
 
-    favorites = db.query(User_Folder).filter(User_Folder.user_id == current_user.user_id).offset(skip).limit(limit).all()
+    favorites = query.offset(skip).limit(limit).all()
 
-    if not favorites:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail= {
-                                "code": 1002,
-                                "message": "No folder found in favorites",
-                            })
-    
-    total = db.query(User_Folder).filter(User_Folder.user_id == current_user.user_id).count()
+    total = query.count()
     
     data = [
         {
@@ -93,11 +87,13 @@ def get_favorites(page:int = 1, limit: int = 8, current_user: TokenData = Depend
             "slug": favorite.folder.slug,
             "star": favorite.folder.star,
             "view": favorite.folder.view,
+            "create_at":favorite.folder.create_at,
             "author": {
                 "id": favorite.folder.author.id,
                 "username": favorite.folder.author.username,
                 "email": favorite.folder.author.email,
-            }
+            },
+            "liked":True
         } for favorite in favorites
     ]
     
@@ -105,7 +101,7 @@ def get_favorites(page:int = 1, limit: int = 8, current_user: TokenData = Depend
     return APIResponse(
         code=1000,
         result={
-            "total": total,
-            "items": data
+            "items": data,
+            "total": total
         }  
     )
