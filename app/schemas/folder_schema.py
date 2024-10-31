@@ -23,7 +23,6 @@ class FolderResponse(BaseModel):
 class FolderCreate(BaseModel):
     name: str  
 
-class APIResponse(BaseModel):
-    code: int
-    result: Union[FolderResponse, List[FolderResponse], dict]  
+class FolderDeleteRequest(BaseModel):
+    slug:str 
     

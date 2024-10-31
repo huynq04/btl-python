@@ -1,8 +1,9 @@
+from datetime import datetime
 from fastapi import APIRouter, Depends, status, HTTPException
 from app.core.database import get_db
 from app.models.user_folder_model import User_Folder
 from app.models.user_model import User
-from app.schemas.folder_schema import FolderCreate, FolderResponse
+from app.schemas.folder_schema import FolderCreate, FolderDeleteRequest, FolderResponse
 from sqlalchemy.orm import Session
 from ..utils.oauth2 import get_current_user
 from app.schemas.api_response import APIResponse
@@ -20,8 +21,7 @@ router = APIRouter(
 def create_folder(
     folder: FolderCreate,
     current_user: TokenData = Depends(get_current_user),
-    db: Session = Depends(get_db),
-    
+    db: Session = Depends(get_db), 
 ):
     
     slug = generate_slug(folder.name.strip().lower().replace(" ", "-"))
@@ -35,7 +35,7 @@ def create_folder(
         name=folder.name,
         author_id=current_user.user_id,
         slug=slug,
-        create_at=datetime.utcnow(),
+        create_at=datetime.now(),
         view=0,
         star=0
     )
@@ -66,54 +66,42 @@ def create_folder(
 
 
 @router.get("/", response_model=APIResponse)
-def get_folders(page: int = 1, limit: int = 8, db: Session = Depends(get_db)):
-    current_user: TokenData = Depends(get_current_user),
-
-    offset = (page - 1) * limit
-
-    folders = db.query(User_Folder).filter(User_Folder.user_id == current_user.user_id).offset(offset).limit(limit).all()
-
-    if not folders:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail={"code": 1009,"message": "No folders found: No folders exist in the system"})
-    
-    folder_list = []
-    for folder in folders:
-        # Kiểm tra xem người dùng có thích thư mục này không
-        user_folder_entry = db.query(User_Folder).filter(User_Folder.user_id == current_user.user_id,User_Folder.folder_id == folder.id).first()
-        is_favorited = user_folder_entry is not None
-        
-        author = db.query(User).filter(User.id == folder.author_id).first()
-
-    folder_list = [
-        FolderResponse(
-            id=folder.id,
-            name=folder.name,
-            user_id=folder.author_id,
-            view=folder.view,
-            slug=folder.slug,
-            star=folder.star,
-            create_at=folder.create_at,
-            author=db.query(User).filter(User.id == folder.author_id).first(),
-            is_favorited=is_favorited
-        ) for folder in folders
-    ]
-
-    return APIResponse(
-        code=1000,
-        result=folder_list
-    )
+def get_folders(page: int = 1,  current_user: TokenData = Depends(get_current_user),limit: int = 8, db: Session = Depends(get_db)):
+    skip = (page - 1) * limit
+    query=db.query(Folder)
+    folders=[]
+    fs = query.offset(skip).limit(limit).all()
+    for f in fs:
+        folders.append({
+            "id": f.id,
+            "name": f.name,
+            "slug": f.slug,
+            "star": f.star,
+            "view": f.view,
+            "create_at":f.create_at,
+            "author": {
+                "id": f.author.id,
+                "username": f.author.username,
+                "email": f.author.email,
+                "picture":f.author.picture
+            },
+            "liked":db.query(User_Folder).filter(
+                User_Folder.user_id == current_user.user_id,
+                User_Folder.folder_id == f.id
+            ).first() is not None
+        })
+    return APIResponse(code=1000,result={"items":folders,"total":query.count()})
 
 
 
 
-@router.delete("/delete/{slug}", response_model=APIResponse)
+@router.delete("/delete", response_model=APIResponse)
 def delete_folder(
-    slug: str,
+    folder_del:FolderDeleteRequest,
     current_user: TokenData = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    folder = db.query(Folder).filter(Folder.slug == slug).first()
+    folder = db.query(Folder).filter(Folder.slug == folder_del.slug).first()
 
     if not folder:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
