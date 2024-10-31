@@ -33,6 +33,7 @@ def get_my_folder_list(page:int = 1, limit: int = 8, current_user: TokenData = D
                 "id": f.author.id,
                 "username": f.author.username,
                 "email": f.author.email,
+                "picture":f.author.picture
             },
             "liked":db.query(User_Folder).filter(
                 User_Folder.user_id == current_user.user_id,

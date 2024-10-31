@@ -92,6 +92,7 @@ def get_favorites(page:int = 1, limit: int = 8, current_user: TokenData = Depend
                 "id": favorite.folder.author.id,
                 "username": favorite.folder.author.username,
                 "email": favorite.folder.author.email,
+                "picture":favorite.folder.author.picture
             },
             "liked":True
         } for favorite in favorites

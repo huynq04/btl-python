@@ -1,3 +1,4 @@
+from datetime import datetime
 from fastapi import APIRouter, HTTPException, Depends, status
 from app.schemas.api_response import APIResponse
 from app.schemas.file_schema import FileCreate, FileResponse, DeleteListDocumentsRequest, FileDeleteResponse
@@ -90,7 +91,7 @@ def add_file(slug: str, file_data: FileCreate,
     new_file = Document(
         name=file_data.name,
         firebase_id=file_data.firebase_id,
-        folder_id=folder.id
+        create_at=datetime.now()
     )
 
     db.add(new_file)
