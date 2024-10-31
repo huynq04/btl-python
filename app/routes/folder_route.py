@@ -23,9 +23,12 @@ def create_folder(
     db: Session = Depends(get_db),
     
 ):
-    name_folder = db.query(Folder).filter(Folder.name == folder.name).first()
+    
+    slug = generate_slug(folder.name.strip().lower().replace(" ", "-"))
 
-    if name_folder:
+
+    existing_folder = db.query(Folder).filter(Folder.slug == slug).first()
+    if existing_folder:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail={"code": 1010,"message": "Folder already exists: A folder with this name already exists"})
     
@@ -35,16 +38,17 @@ def create_folder(
     new_folder = Folder(
         name=folder.name,
         author_id=current_user.user_id,
-        slug=slug
+        slug=slug,
+        create_at=datetime.utcnow(),
+        view=0,
+        star=0
     )
+
+
+
     db.add(new_folder)
     db.commit()
     db.refresh(new_folder)
-
-
-    # Kiểm tra xem người dùng có thích thư mục này không
-    user_folder_entry = db.query(User_Folder).filter(User_Folder.user_id == current_user.user_id,User_Folder.folder_id == new_folder.id).first()
-    is_favorited = user_folder_entry is not None
 
     author = db.query(User).filter(User.id == new_folder.author_id).first()
 
@@ -59,7 +63,7 @@ def create_folder(
             star=new_folder.star,
             create_at=new_folder.create_at,
             author=author,
-            is_favorited=is_favorited
+            liked = False,
         )
     )
 
@@ -107,13 +111,13 @@ def get_folders(page: int = 1, limit: int = 8, db: Session = Depends(get_db)):
 
 
 
-@router.delete("/delete/{folder_id}", response_model=APIResponse)
+@router.delete("/delete/{slug}", response_model=APIResponse)
 def delete_folder(
-    folder_id: int,
+    slug: str,
     current_user: TokenData = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    folder = db.query(Folder).filter(Folder.id == folder_id).first()
+    folder = db.query(Folder).filter(Folder.slug == slug).first()
 
     if not folder:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
