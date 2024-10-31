@@ -26,14 +26,10 @@ def create_folder(
     
     slug = generate_slug(folder.name.strip().lower().replace(" ", "-"))
 
-
     existing_folder = db.query(Folder).filter(Folder.slug == slug).first()
     if existing_folder:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail={"code": 1010,"message": "Folder already exists: A folder with this name already exists"})
-    
-
-    slug = generate_slug(folder.name)
 
     new_folder = Folder(
         name=folder.name,
@@ -121,7 +117,7 @@ def delete_folder(
 
     if not folder:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail={"code": 1009,"message": "Folder not found: No folder exists with the provided ID"})
+                            detail={"code": 1009,"message": "Folder not found: No folder exists with the provided slug"})
 
     if folder.author_id != current_user.user_id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
@@ -133,7 +129,7 @@ def delete_folder(
 
     return APIResponse(
         code=1000,
-        result={"message": f"Folder with id {folder_id} has been deleted"}
+        result={"message": f"Folder with slug {folder.slug} has been deleted"}
     )
 
 
