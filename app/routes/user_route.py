@@ -7,7 +7,7 @@ from typing import List
 
 from fastapi import APIRouter, Depends, status, HTTPException
 from app.core.database import get_db
-from app.schemas.user_schema import UserCreate, UserResponse, UserUpdate, UpdatePassword
+from app.schemas.user_schema import PictureUpdateRequest, UserCreate, UserResponse, UserUpdate, UpdatePassword
 from app.schemas.password_schema import ChangePassWordRequest,ResetPasswordRequest;
 from sqlalchemy.orm import Session
 from app.utils.hashing import Hash
@@ -205,7 +205,32 @@ def get_hidden_email(username:str,db: Session = Depends(get_db)):
     except ValueError:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,detail={"code":"9999","message":"Invalid email"})
 
+@router.put("/update-picture/{userId}")
+def update_picture(userId:int,request:PictureUpdateRequest,
+                   current_user: TokenData = Depends(get_current_user),db: Session = Depends(get_db)):
+    user_db = db.query(User).filter(User.id == userId).first()
+    if not user_db:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail={"code":1002,"message":"User not found"})
+    if current_user.user_id != userId:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
+                            detail={"code":1001,"message":"You can't update the profile not your own"})
+    user_db.picture=request.link_url
+    user_db.name_picture_firebase=request.name_picture_firebase
 
+    db.commit()
+    db.refresh(user_db)
+
+    return APIResponse(code=1000,
+                       result=UserResponse(id=user_db.id,first_name=user_db.first_name,
+            last_name=user_db.last_name,
+            username=user_db.username,
+            email=user_db.email,
+            picture=user_db.picture,
+            dob=user_db.dob,
+            location=user_db.location,phone=user_db.phone,name_picture_firebase=user_db.name_picture_firebase,
+            activated=user_db.activated))
+    
 
 # @router.put("/update-password/{id}", response_model=UserResponse)
 # def update_password(id: int, user: UpdatePassword,

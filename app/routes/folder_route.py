@@ -70,7 +70,7 @@ def get_folders(page: int = 1,  current_user: TokenData = Depends(get_current_us
     skip = (page - 1) * limit
     query=db.query(Folder)
     folders=[]
-    fs = query.offset(skip).limit(limit).all()
+    fs = query.order_by(Folder.create_at.desc()).offset(skip).limit(limit).all()
     for f in fs:
         folders.append({
             "id": f.id,
