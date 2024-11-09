@@ -187,11 +187,16 @@ def update_user(id: int, user: UserUpdate,
 @router.get("/get-hidden-email/{username}")
 def get_hidden_email(username:str,db: Session = Depends(get_db)):
     user_db = db.query(User).filter(User.username == username).first()
+    if(user_db is None):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail={
+            "code":"1009",
+            "message":"Cannot find user"
+        })
     if user_db.email is None:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                             detail={
                                 "code":"1005",
-                                "message":"Cannot find user"
+                                "message":"Cannot find user 's email"
                             })
     try:
         user,domain= str(user_db.email).split('@')

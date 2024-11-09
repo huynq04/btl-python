@@ -71,9 +71,10 @@ def send_otp(username:str,  db: Session = Depends(get_db)):
         </html>
     """
     send_html_email("Document PTIT - Resset password",html,user_db.email)
+    return APIResponse(code=1000,result='Email sent successfully')
 #đợi fix mail
 
-@router.get("/check-otp/{username}",response_model=APIResponse)
+@router.post("/check-otp/{username}",response_model=APIResponse)
 def check_otp(username:str,request: CheckOtpRequest, db: Session = Depends(get_db)):
     user_db = db.query(User).filter(User.username == username).first()
     if(user_db is None):
