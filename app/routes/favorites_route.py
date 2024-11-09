@@ -21,14 +21,14 @@ def add_favorite(id: int,
     folder = db.query(Folder).filter(Folder.id == id).first()
     if not folder:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail= {
+                            detail={
                                 "code": 1002,
                                 "message": "Folder not found",
                             })
 
     # Kiểm tra nếu folder đã trong favorites của người dùng
     existing_favorite = db.query(User_Folder).filter(User_Folder.user_id == current_user.user_id,
-                                                  User_Folder.folder_id == id).first()
+                                                     User_Folder.folder_id == id).first()
     if existing_favorite:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail={
@@ -39,6 +39,9 @@ def add_favorite(id: int,
     # Thêm folder vào favorites
     new_favorite = User_Folder(user_id=current_user.user_id, folder_id=id)
     db.add(new_favorite)
+    
+    # Tăng trường star lên 1
+    folder.star += 1
     db.commit()
 
     return APIResponse(
@@ -52,13 +55,18 @@ def delete_favorite(id: int,
                     db: Session = Depends(get_db)):
     # Kiểm tra nếu folder trong favorites của người dùng
     favorite = db.query(User_Folder).filter(User_Folder.user_id == current_user.user_id,
-                                         User_Folder.folder_id == id).first()
+                                            User_Folder.folder_id == id).first()
     if not favorite:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail= {
+                            detail={
                                 "code": 1002,
                                 "message": "Folder not found",
                             })
+
+    # Lấy folder và giảm trường star đi 1
+    folder = db.query(Folder).filter(Folder.id == id).first()
+    if folder.star > 0:
+        folder.star -= 1
 
     # Xóa folder khỏi favorites
     db.delete(favorite)
@@ -68,6 +76,7 @@ def delete_favorite(id: int,
         code=1000,
         result={"result": f"Folder with id {id} has been removed from favorites"}
     )
+
 
 @router.get("", response_model=APIResponse)
 def get_favorites(page:int = 1, limit: int = 8, current_user: TokenData = Depends(get_current_user),
@@ -92,7 +101,9 @@ def get_favorites(page:int = 1, limit: int = 8, current_user: TokenData = Depend
                 "id": favorite.folder.author.id,
                 "username": favorite.folder.author.username,
                 "email": favorite.folder.author.email,
-                "picture":favorite.folder.author.picture
+                "picture":favorite.folder.author.picture,
+                "first_name": favorite.folder.author.first_name,
+                "last_name": favorite.folder.author.last_name,
             },
             "liked":True
         } for favorite in favorites
