@@ -91,7 +91,8 @@ def add_file(slug: str, file_data: FileCreate,
     new_file = Document(
         name=file_data.name,
         firebase_id=file_data.firebase_id,
-        create_at=datetime.now()
+        create_at=datetime.now(),
+        folder_id=folder.id
     )
 
     db.add(new_file)
