@@ -64,11 +64,16 @@ def create_folder(
     )
 
 
-
 @router.get("/", response_model=APIResponse)
-def get_folders(page: int = 1,  current_user: TokenData = Depends(get_current_user),limit: int = 8, db: Session = Depends(get_db)):
+def get_folders(page: int = 1,  current_user: TokenData = Depends(get_current_user),
+                limit: int = 8, 
+                name: str = '',
+                db: Session = Depends(get_db)):
     skip = (page - 1) * limit
-    query=db.query(Folder)
+    if name:
+        query= db.query(Folder).filter(Folder.name.like(f"%{name}%"))
+    else: 
+        query= db.query(Folder)
     folders=[]
     fs = query.order_by(Folder.create_at.desc()).offset(skip).limit(limit).all()
     for f in fs:
