@@ -18,4 +18,5 @@ class Folder(Base):
     # relationships
     author = relationship('User')
     documents = relationship('Document', back_populates='folder', cascade="all, delete")
+    user_folder = relationship('User_Folder', back_populates='folder',cascade="all, delete")
 

@@ -11,7 +11,7 @@ class User_Folder(Base):
 
     # relationships
     author = relationship('User')
-    folder = relationship('Folder', lazy='joined')
+    folder = relationship('Folder', lazy='joined', back_populates='user_folder')
 
 
 
