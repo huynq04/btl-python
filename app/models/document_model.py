@@ -14,4 +14,4 @@ class Document(Base):
     folder_id = Column(Integer, ForeignKey('folder.id'))
 
     # relationships
-    folder = relationship('Folder')
+    folder = relationship('Folder', back_populates='documents')
